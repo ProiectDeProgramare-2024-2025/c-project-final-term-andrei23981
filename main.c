@@ -11,8 +11,10 @@
 #define COLOR_PRICE "\033[38;5;201m"       // Roz vibrant
 #define COLOR_ERROR "\033[38;5;196m"       // Rosu aprins
 #define COLOR_RESET "\033[0m"
-#define COLOR_TITLE "\033[38;5;51m"         // Cyan
-#define COLOR_PROMPT "\033[38;5;202m"       // Orange
+#define COLOR_TITLE "\033[1;36m"           // Cyan bold
+#define COLOR_PROMPT "\033[38;5;208m"      // Orange
+#define COLOR_OPTION_NUM "\033[1;33m"      // Galben bold
+#define COLOR_OPTION_TEXT "\033[38;5;39m"  // Albastru deschis
 
 struct Hall {
     char name[100];
@@ -53,8 +55,57 @@ int readHalls(struct Hall *halls, int *count) {
     fclose(file);
     return 0;
 }
+void deleteReservation() {
+    clearScreen();
+    printf(COLOR_TITLE "\n========== STERGERE REZERVARE ==========\n" COLOR_RESET);
+    FILE *f = fopen("rezervari.txt", "r");
+    if (!f) {
+        printf(COLOR_ERROR "Nu exista rezervari!\n" COLOR_RESET);
+        return;
+    }
 
+    struct Reservation reservations[100];
+    int count = 0;
+    char line[256];
+    while (fgets(line, sizeof(line), f) && count < 100) {
+        sscanf(line, "%[^;];%[^;];%[^;];%[^\n]", reservations[count].hall_name,
+            reservations[count].date, reservations[count].start_time,
+            reservations[count].end_time);
+        count++;
+    }
+    fclose(f);
+
+    if (count == 0) {
+        printf(COLOR_ERROR "Nu exista rezervari!\n" COLOR_RESET);
+        return;
+    }
+
+    for (int i = 0; i < count; i++) {
+        printf(COLOR_OPTION_NUM "\n%d. " COLOR_RESET, i+1);
+        printf(COLOR_NAME "%s" COLOR_RESET " - " COLOR_CAPACITY "%s %s-%s\n",
+            reservations[i].hall_name, reservations[i].date,
+            reservations[i].start_time, reservations[i].end_time);
+    }
+
+    int choice = getIntInput("\nIntrodu numarul rezervarii de sters: ", 1);
+    if (choice < 1 || choice > count) {
+        printf(COLOR_ERROR "Numar invalid!\n" COLOR_RESET);
+        return;
+    }
+
+    f = fopen("rezervari.txt", "w");
+    for (int i = 0; i < count; i++) {
+        if (i != choice-1) {
+            fprintf(f, "%s;%s;%s;%s\n", reservations[i].hall_name,
+                reservations[i].date, reservations[i].start_time,
+                reservations[i].end_time);
+        }
+    }
+    fclose(f);
+    printf(COLOR_CAPACITY "\n>>> Rezervare stearsa cu succes! <<<\n" COLOR_RESET);
+}
 void displayHalls() {
+    clearScreen();
     struct Hall halls[100];
     int count;
     printf(COLOR_TITLE "\n========== SALI DISPONIBILE ==========\n" COLOR_RESET);
@@ -137,8 +188,6 @@ void searchHalls() {
     else if (choice == 2) searchByFacilities(halls, count);
     else printf(COLOR_ERROR "Optiune invalida!\n" COLOR_RESET);
 
-    printf(COLOR_PROMPT "\nApasa Enter pentru a continua..." COLOR_RESET);
-    getchar();
 }
 
 int validateTime(const char *time) {
@@ -182,20 +231,29 @@ void viewReservations() {
         return;
     }
     char line[256];
+    int found = 0;
+
     while (fgets(line, sizeof(line), f)) {
+        line[strcspn(line, "\n")] = 0;
+
         char *name = strtok(line, ";");
         char *date = strtok(NULL, ";");
         char *start = strtok(NULL, ";");
         char *end = strtok(NULL, "\n");
-        printf("\n>>> " COLOR_NAME "%s" COLOR_RESET
-               "\n    " COLOR_CAPACITY "Data: %s" COLOR_RESET
-               "\n    " COLOR_FACILITIES "Interval: %s - %s" COLOR_RESET "\n",
-               name, date, start, end);
+
+        if (name && date && start && end) {
+            printf("\n>>> " COLOR_NAME "%s" COLOR_RESET
+                   "\n    " COLOR_CAPACITY "Data: %s" COLOR_RESET
+                   "\n    " COLOR_FACILITIES "Interval: %s - %s" COLOR_RESET "\n",
+                   name, date, start, end);
+            found = 1;
+        }
     }
     fclose(f);
-    printf(COLOR_PROMPT "\nApasa Enter pentru a continua..." COLOR_RESET);
-    getchar();
-    getchar();
+
+    if (!found) {
+        printf(COLOR_ERROR "\nNu s-au gasit rezervari valide in fisier!\n" COLOR_RESET);
+    }
 }
 
 void makeReservation() {
@@ -232,8 +290,6 @@ void makeReservation() {
 
     } while (tolower(another) == 'y');
 
-    printf(COLOR_PROMPT "\nApasa Enter pentru a continua..." COLOR_RESET);
-    getchar();
 }
 
 int main() {
@@ -241,16 +297,28 @@ int main() {
     do {
         clearScreen();
         printf(COLOR_TITLE "\n=========== MENIU PRINCIPAL ===========\n" COLOR_RESET);
-        printf("1. Afisare sali\n2. Cautare sali\n3. Rezervare sala\n4. Vizualizare rezervari\n5. Iesire\n");
-        choice = getIntInput("Alegere (1-5): ", 1);
+        printf(COLOR_OPTION_NUM "1. " COLOR_OPTION_TEXT "Afisare sali\n");
+        printf(COLOR_OPTION_NUM "2. " COLOR_OPTION_TEXT "Cautare sali\n");
+        printf(COLOR_OPTION_NUM "3. " COLOR_OPTION_TEXT "Rezervare sala\n");
+        printf(COLOR_OPTION_NUM "4. " COLOR_OPTION_TEXT "Vizualizare rezervari\n");
+        printf(COLOR_OPTION_NUM "5. " COLOR_OPTION_TEXT "Stergere rezervare\n");
+        printf(COLOR_OPTION_NUM "6. " COLOR_OPTION_TEXT "Iesire\n" COLOR_RESET);
+
+        choice = getIntInput(COLOR_PROMPT "\nAlegere (1-6): " COLOR_RESET, 1);
         switch (choice) {
-            case 1: clearScreen(); displayHalls(); printf(COLOR_PROMPT "\nApasa Enter..." COLOR_RESET); getchar(); break;
+            case 1: displayHalls(); break;
             case 2: searchHalls(); break;
             case 3: makeReservation(); break;
             case 4: viewReservations(); break;
-            case 5: printf(COLOR_TITLE "\nLa revedere! Mult succes!\n" COLOR_RESET); break;
+            case 5: deleteReservation(); break;
+            case 6: printf(COLOR_TITLE "\nLa revedere!\n" COLOR_RESET); break;
             default: printf(COLOR_ERROR "Optiune invalida!\n" COLOR_RESET);
         }
-    } while (choice != 5);
+
+        if (choice != 6) {
+            printf(COLOR_PROMPT "\nApasa Enter pentru a reveni..." COLOR_RESET);
+            getchar();
+        }
+    } while (choice != 6);
     return 0;
 }
