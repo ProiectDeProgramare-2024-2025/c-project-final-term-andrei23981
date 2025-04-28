@@ -1,0 +1,8 @@
+# depslib dependency file v1.0
+1745849906 source:c:\users\chind\desktop\meniu interactiv\main.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<ctype.h>
+	<time.h>
+

@@ -1,0 +1,3 @@
+Sala Conferinte A;80;Proiector,Ecran,WiFi,Flipchart;150
+Sala Mica B;20;Tabla,WiFi;50
+Sala VIP;50;Proiector Full HD,Sistem Audio,Aer Conditionat,Internet Fibra;300
